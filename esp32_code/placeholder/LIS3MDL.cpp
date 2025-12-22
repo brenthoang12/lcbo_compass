@@ -11,7 +11,7 @@ void setup(void) {
 
   Serial.println("Adafruit LIS3MDL test!");
   
-  if (! lis3mdl.begin_I2C()) {          
+  if (! lis3mdl.begin_I2C()) {          // hardware I2C mode, can pass in address & alt Wire
     Serial.println("Failed to find LIS3MDL chip");
     while (1) { delay(10); }
   }
@@ -70,21 +70,21 @@ void setup(void) {
 }
 
 void loop() {
-  sensors_event_t event;
+  lis3mdl.read();      // get X Y and Z data at once
+  // Then print out the raw data
+  Serial.print("\nX:  "); Serial.print(lis3mdl.x); 
+  Serial.print("  \tY:  "); Serial.print(lis3mdl.y); 
+  Serial.print("  \tZ:  "); Serial.println(lis3mdl.z); 
+
+  /* Or....get a new sensor event, normalized to uTesla */
+  sensors_event_t event; 
   lis3mdl.getEvent(&event);
+  /* Display the results (magnetic field is measured in uTesla) */
+  Serial.print("\tX: "); Serial.print(event.magnetic.x);
+  Serial.print(" \tY: "); Serial.print(event.magnetic.y); 
+  Serial.print(" \tZ: "); Serial.print(event.magnetic.z); 
+  Serial.println(" uTesla ");
 
-  float mx = event.magnetic.x;
-  float my = event.magnetic.y;
-
-  float heading = atan2f(my, mx);
-  if (heading < 0) heading += 2.0f * PI;
-
-  Serial.print("mx,my: ");
-  Serial.print(mx, 2); Serial.print(", ");
-  Serial.print(my, 2);
-
-  Serial.print("  heading(deg): ");
-  Serial.println(heading * 180.0f / PI, 1);
-
-  delay(100);
+  delay(100); 
+  Serial.println();
 }
