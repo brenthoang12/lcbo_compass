@@ -4,6 +4,15 @@
 
 Adafruit_LIS3MDL lis3mdl;
 
+// Hard-iron calibration
+const float hard_iron[3] = {0.00f, 0.00f, 0.00f};
+// Soft-iron calibration
+const float soft_iron[3][3] = {
+  { 1 , 0 , 0 },
+  { 0 , 1 , 0 },
+  { 0 , 0 , 1 } 
+};
+
 
 void setup(void) {
   Serial.begin(115200);
@@ -72,19 +81,46 @@ void setup(void) {
 void loop() {
   sensors_event_t event;
   lis3mdl.getEvent(&event);
+  
+  // Fake accel/gyro for MotionCal
+  int ax = 0, ay = 0, az = 0;   
+  int gx = 0, gy = 0, gz = 0;
 
-  float mx = event.magnetic.x;
-  float my = event.magnetic.y;
+  float raw_mag[3] = {event.magnetic.x, event.magnetic.y, event.magnetic.z};
+  float hi_mag[3];
+  float mag_data[3];
+  
+  // Hard-iron calibration
+  for (uint8_t i = 0; i < 3; i++) {
+    hi_mag[i] = raw_mag[i] - hard_iron[i];
+  }
 
-  float heading = atan2f(my, mx);
-  if (heading < 0) heading += 2.0f * PI;
+  // Soft-iron calibration
+  for (uint8_t i = 0; i < 3; i++) {
+    mag_data[i] = (soft_iron[i][0] * hi_mag[0]) +
+                  (soft_iron[i][1] * hi_mag[1]) +
+                  (soft_iron[i][2] * hi_mag[2]);
+  }
 
-  Serial.print("mx,my: ");
-  Serial.print(mx, 2); Serial.print(", ");
-  Serial.print(my, 2);
+    // Scale magnetometer values to match MotionCal
+  int mag_data_i[3] = {
+    (int)lroundf(mag_data[0] * 10.0f),
+    (int)lroundf(mag_data[1] * 10.0f),
+    (int)lroundf(mag_data[2] * 10.0f)
+  };
 
-  Serial.print("  heading(deg): ");
-  Serial.println(heading * 180.0f / PI, 1);
+  Serial.print("Raw:");
+  Serial.print(ax); Serial.print(',');
+  Serial.print(ay); Serial.print(',');
+  Serial.print(az); Serial.print(',');
+  Serial.print(gx); Serial.print(',');
+  Serial.print(gy); Serial.print(',');
+  Serial.print(gz); Serial.print(',');
+  Serial.print(mag_data_i[0]); Serial.print(',');
+  Serial.print(mag_data_i[1]); Serial.print(',');
+  Serial.print(mag_data_i[2]);
+  Serial.println();
 
-  delay(100);
+  delay(10); 
 }
+
